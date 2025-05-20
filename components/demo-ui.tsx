@@ -13,6 +13,57 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+
+// TODO: 더미 데이터 제거
+const dummyLectures = [
+  {
+    id: 1,
+    title: "피그마 MCP로 디자인 딸깍 가능?",
+    description: "피그마 MCP로 디자인 딸깍 가능?",
+    videoUrl: "https://www.youtube.com/watch?v=H-yo6dzJ13g",
+    duration: "2시간 30분",
+    createdAt: "2024-03-15",
+  },
+  {
+    id: 2,
+    title: "React 기초 강의",
+    description: "React의 기본 개념과 사용법을 배웁니다.",
+    videoUrl: "https://www.youtube.com/watch?v=LzsB2AJI90s",
+    duration: "2시간 30분",
+    createdAt: "2024-03-15",
+  },
+  {
+    id: 3,
+    title: "React 기초 강의",
+    description: "React의 기본 개념과 사용법을 배웁니다.",
+    videoUrl: "https://www.youtube.com/watch?v=Q4YV_bWrSkg",
+    duration: "2시간 30분",
+    createdAt: "2024-03-15",
+  },
+  {
+    id: 4,
+    title: "React 기초 강의",
+    description: "React의 기본 개념과 사용법을 배웁니다.",
+    videoUrl: "https://www.youtube.com/watch?v=H-yo6dzJ13g",
+    duration: "2시간 30분",
+    createdAt: "2024-03-15",
+  },
+  {
+    id: 5,
+    title: "React 기초 강의",
+    description: "React의 기본 개념과 사용법을 배웁니다.",
+    videoUrl: "https://www.youtube.com/watch?v=H-yo6dzJ13g",
+    duration: "2시간 30분",
+    createdAt: "2024-03-15",
+  },
+];
 
 export function DemoUI() {
   const [submissions, setSubmissions] = useState([
@@ -48,18 +99,24 @@ export function DemoUI() {
   const [submitterEmail, setSubmitterEmail] = useState("");
   const [selectedVideo, setSelectedVideo] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLockedModalOpen, setIsLockedModalOpen] = useState(false);
+  const [lockedVideoTitle, setLockedVideoTitle] = useState("");
 
   const mainVideo = {
-    title: "React 컴포넌트 최적화",
-    description: "성능 향상을 위한 메모이제이션 기법",
+    title: dummyLectures[selectedVideo].title,
+    description: dummyLectures[selectedVideo].description,
+    videoUrl: dummyLectures[selectedVideo].videoUrl,
   };
 
-  const subVideos = [
-    { id: 1, title: "상태 관리 기초", locked: true },
-    { id: 2, title: "React Hooks 심화", locked: true },
-    { id: 3, title: "비동기 데이터 처리", locked: true },
-    { id: 4, title: "테스트 코드 작성법", locked: true },
-  ];
+  const subVideos = dummyLectures
+    .filter((_, index) => index !== selectedVideo)
+    .slice(0, 4)
+    .map((lecture, index) => ({
+      id: lecture.id,
+      title: lecture.title,
+      locked: index >= 2,
+      videoUrl: lecture.videoUrl,
+    }));
 
   const handleAddSubmission = (e) => {
     e.preventDefault();
@@ -71,7 +128,6 @@ export function DemoUI() {
     )
       return;
 
-    // Determine link type based on URL
     let linkType = "링크";
     if (submissionLink.includes("github.com")) linkType = "GitHub";
     else if (submissionLink.includes("codesandbox.io"))
@@ -83,15 +139,12 @@ export function DemoUI() {
     const newSubmissionObj = {
       id: submissions.length + 1,
       user: submitterName,
-      email: submitterEmail, // Store email but don't display it
+      email: submitterEmail,
       time: "방금 전",
       text: newSubmission,
       link: submissionLink,
       linkType: linkType,
     };
-
-    // Here you would typically save to a database
-    console.log("Saving submission to database:", newSubmissionObj);
 
     setSubmissions([newSubmissionObj, ...submissions]);
     setNewSubmission("");
@@ -102,6 +155,16 @@ export function DemoUI() {
 
   const togglePlay = () => {
     setIsPlaying(!isPlaying);
+  };
+
+  const handleVideoSelect = (index) => {
+    setSelectedVideo(index);
+    setIsPlaying(false);
+  };
+
+  const handleLockedVideoClick = (videoTitle: string) => {
+    setLockedVideoTitle(videoTitle);
+    setIsLockedModalOpen(true);
   };
 
   // Function to get link icon based on link type
@@ -142,10 +205,18 @@ export function DemoUI() {
           </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
+            <Image
+              src={`https://img.youtube.com/vi/${
+                mainVideo.videoUrl.split("v=")[1]
+              }/maxresdefault.jpg`}
+              alt={mainVideo.title}
+              fill
+              className="object-cover"
+            />
             <Button
               variant="outline"
               size="icon"
-              className="rounded-full h-16 w-16 bg-[#000000]/20 border-[#5046E4]"
+              className="rounded-full h-16 w-16 bg-[#000000]/20 border-[#5046E4] z-10"
               onClick={togglePlay}
             >
               <Play className="h-8 w-8 text-[#5046E4]" />
@@ -167,20 +238,30 @@ export function DemoUI() {
               className="relative rounded-lg overflow-hidden cursor-pointer"
               onClick={() =>
                 video.locked
-                  ? alert("이 강의는 아직 잠겨 있습니다.")
-                  : setSelectedVideo(index + 1)
+                  ? handleLockedVideoClick(video.title)
+                  : handleVideoSelect(
+                      dummyLectures.findIndex(
+                        (l) => l.videoUrl === video.videoUrl,
+                      ),
+                    )
               }
             >
               <div className="aspect-video bg-gray-800 relative">
                 <Image
-                  src={`/placeholder.svg?height=120&width=200`}
+                  src={`https://img.youtube.com/vi/${
+                    video.videoUrl.split("v=")[1]
+                  }/maxresdefault.jpg`}
                   alt={video.title}
                   fill
-                  className="object-cover opacity-50 blur-[2px]"
+                  className={`object-cover ${
+                    video.locked ? "opacity-50 blur-[2px]" : ""
+                  }`}
                 />
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <Lock className="h-8 w-8 text-[#5046E4]" />
-                </div>
+                {video.locked && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                    <Lock className="h-8 w-8 text-[#5046E4]" />
+                  </div>
+                )}
               </div>
               <div className="p-2 bg-[#1C1F2B]">
                 <p className="text-sm font-medium truncate">{video.title}</p>
@@ -190,13 +271,30 @@ export function DemoUI() {
         </div>
       </div>
 
+      {/* Locked Video Modal */}
+      <Dialog open={isLockedModalOpen} onOpenChange={setIsLockedModalOpen}>
+        <DialogContent className="bg-[#1C1F2B] border-gray-700 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">강의 잠금</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              {lockedVideoTitle} 강의는 아직 잠겨 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <p className="text-sm text-gray-400">
+              이 강의는 아직 오픈되지 않았습니다. 추후 업데이트를 기다려주세요.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Assignment Submission Section */}
       <div className="border-t border-gray-700 mt-4">
         <div>
-          <div className="w-full bg-[#1C1F2B] border-b border-gray-700 p-2 flex items-center justify-between">
+          <div className="w-full pt-6 bg-[#1C1F2B] border-b border-gray-700 p-2 flex items-center justify-between">
             <div className="flex items-center">
               <FileText className="h-4 w-4 mr-2" />
-              <span className="font-medium">과제 제출</span>
+              <span className="font-medium text-xl">과제 제출</span>
             </div>
             <div className="text-xs text-gray-400">
               과제: React 컴포넌트 최적화 구현하기
@@ -242,13 +340,13 @@ export function DemoUI() {
                   value={newSubmission}
                   onChange={(e) => setNewSubmission(e.target.value)}
                   placeholder="과제에 대한 설명이나 코멘트를 입력하세요."
-                  className="bg-[#1C1F2B] border-gray-700 min-h-[80px] resize-none"
+                  className="bg-[#1C1F2B] border-gray-700 min-h-[80px] resize-none flex-1"
                   required
                 />
                 <Button
                   type="submit"
                   size="icon"
-                  className="bg-[#5046E4] hover:bg-[#DCD9FF] text-[#1C1F2B] self-start"
+                  className="bg-[#5046E4] hover:bg-[#DCD9FF] text-[#1C1F2B] self-end"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
